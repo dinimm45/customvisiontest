@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Security-Policy" content="
+    default-src * 'unsafe-inline' 'unsafe-eval';
+    connect-src * 'unsafe-inline';
+    img-src * data: blob: 'unsafe-inline';
+    frame-src *;
+    style-src * 'unsafe-inline';
+">
+
+
+    <title>Bottle recycled</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+
+        canvas {
+            display: block;
+            max-width: 100%;
+            max-height: 100%;
+            border: 1px solid black;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+
+<body>
+    <h3>succes page</h3>
+
+    <script>
+        // Automatically send a message to the parent page when the page is loaded
+        window.onload = () => {
+            window.parent.postMessage('bottle recycled!', '*');
+        };
+
+        // Event listener for messages from the parent page
+        window.addEventListener('message', (event) => {
+            // Log the received message
+            console.log('Received message:', event.data);
+            // You can now send a message back to the parent page
+            event.source.postMessage('bottle recycled!', '*');
+        });
+    </script>
+
+</body>

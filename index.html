@@ -1,0 +1,333 @@
+<style>
+    .container {
+        z-index: 1000;
+        border-radius: 25px;
+        font-family: Arial, sans-serif;
+        display: flex;
+        align-items: flex-start;
+        width: 90%;
+        background-color: white;
+        /* Set container width */
+        max-width: 700px;
+        /* Maximum width can be adjusted */
+        margin: 20px auto;
+        /* Center container on the page */
+        padding: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .bag-image {
+        width: 25%;
+        border-radius: 150px;
+        /* Adjust image width as needed */
+        display: block;
+        margin-right: 10px;
+        /* Space between image and text */
+    }
+
+    .description {
+        flex-grow: 1;
+        /* Take up remaining space */
+    }
+
+    .title {
+        font-weight: bold;
+        font-size: 2.2em;
+        color: #333;
+        margin-bottom: 5px;
+        /* Adjust spacing between title and brand */
+    }
+
+    .brand {
+        margin-top: 20px;
+        color: #777;
+        font-size: 1.9em;
+    }
+
+    body {
+        background: linear-gradient(45deg, #1b1b1b, #000);
+        color: #ffffff;
+        font-family: 'Roboto', sans-serif;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .infocontainer {
+        font-size: 1.1rem;
+        /* Responsive font size */
+        font-weight: bold;
+        text-align: center;
+        padding: 20px;
+        border-radius: 10px;
+        background-color: #27ae60;
+        color: #ffffff;
+        max-width: 80%;
+        position: absolute;
+        top: 10%;
+        left: 50%;
+        transform: translateX(-50%);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        /* Added shadow for depth */
+        transition: background-color 0.3s;
+        /* Smooth transition for hover */
+    }
+
+    .infocontainer:hover {
+        background-color: #2ecc71;
+    }
+
+    #navbar {
+        display: flex;
+        justify-content: space-around;
+        width: 80%;
+        position: absolute;
+        bottom: 20vh;
+        z-index: 1000;
+    }
+
+    .icon {
+        font-size: 2rem;
+        /* Larger icons for better interaction */
+        transition: color 0.3s, transform 0.3s;
+        /* Smooth transitions */
+    }
+
+    .icon:hover {
+        color: #32CD32;
+        transform: scale(1.1);
+        /* Slight increase in size on hover */
+    }
+
+    .icon.active {
+        color: #32CD32;
+    }
+
+    #warningBanner {
+        text-align: center;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        /* Center content */
+        padding: 15px;
+        border-radius: 10px;
+        background-color: #efef57;
+        color: #000;
+        /* Changed for better contrast */
+        width: 100%;
+        margin: 0;
+        position: absolute;
+        bottom: 5vh;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    video {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    @media (max-width: 768px) {
+
+        .infocontainer,
+        #warningBanner {
+            font-size: 0.9rem;
+            /* Smaller font size on smaller screens */
+        }
+
+        .icon {
+            font-size: 1.5rem;
+            /* Smaller icons on smaller screens */
+        }
+    }
+</style>
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+
+</head>
+
+<body>
+
+    <video style=" pointer-events: none;
+        z-index: 0;" id="video" autoplay muted playsinline></video>
+    <canvas id="canvas" width="640" height="480"></canvas>
+
+    <div class="container">
+        <img src="scan.png" alt="Shoulder Bag" class="bag-image" id="bagImage">
+        <div class="description">
+            <div id="title" class="title">1. Scan your bottle</div>
+            <div id="info" class="brand">Point you camera on the pant icon of your bottle</div>
+        </div>
+    </div>
+    <!-- <div id="warningBanner">
+        <p style="text-align: center; align-content: center;align-items: center;">Keep your hand within the camera's
+            view during the
+            recycling process to avoid
+            losing points.</p>
+    </div> -->
+
+    <!-- <div class="infocontainer">
+        <p id="info">Align bottle on top of the recycling station</p> 
+
+
+    </div> -->
+    <!-- <div id="navbar">
+        <span id="recycleIcon" class="icon active"><i class="fas fa-recycle"></i></span> 
+        <span id="handIcon" class="icon"><i class="fas fa-hand-paper"></i></span> 
+        <span id="correctIcon" class="icon"><i class="fas fa-check-circle"></i></span> 
+    </div> -->
+    <script>
+        const predictionKey = '75deb4a7d3c64b8e9f9cb69984efbc6f';
+        const predictionURL = 'https://northeurope.api.cognitive.microsoft.com/customvision/v3.0/Prediction/c066cfd2-2ebc-4a0b-9250-fb6470db2a19/detect/iterations/Iteration40/image';
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+        let cameraStream = null;
+        let recycledPrediction_on_triggered = false;
+        let withPant_triggered = false;
+
+        function updateIcon(activeIcon) {
+            // Reset all icons to inactive
+            document.getElementById('recycleIcon').classList.remove('active');
+            document.getElementById('handIcon').classList.remove('active');
+            document.getElementById('correctIcon').classList.remove('active');
+
+            // Set the active icon
+            document.getElementById(activeIcon).classList.add('active');
+        }
+
+        function resizeVideo() {
+            video.width = window.innerWidth;
+            video.height = window.innerHeight;
+        }
+
+        window.onresize = resizeVideo;
+        window.onload = resizeVideo;
+
+
+
+
+
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: 'environment',
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
+                }
+            })
+                .then((stream) => {
+                    video.srcObject = stream;
+                    video.onloadedmetadata = () => {
+                        video.play();
+                    };
+                })
+                .catch((error) => {
+                    console.error('Error accessing camera:', error);
+                    if (error.name === 'NotAllowedError') {
+                        alert('Please grant camera access to use this feature. You may need to reload the page after granting permission.');
+                    } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+                        alert('The camera is already in use by another application. Please close other applications that might be using the camera and try again.');
+                    } else {
+                        alert('An error occurred while accessing the camera: ' + error.message);
+                    }
+                });
+        }
+
+        video.addEventListener('play', () => {
+            const draw = () => {
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                requestAnimationFrame(draw);
+            };
+            draw();
+
+            predictionInterval = setInterval(() => {
+                canvas.toBlob(blob => {
+                    fetch(predictionURL, {
+                        method: 'POST',
+                        headers: {
+                            'Prediction-Key': predictionKey,
+                            'Content-Type': 'application/octet-stream',
+                        },
+                        body: blob,
+                    })
+                        .then((response) => response.json())
+                        .then((data) => {
+                            console.log(data);
+                            if (data.predictions && data.predictions.length > 0) {
+                                let recycledPrediction = data.predictions.find(p => p.tagName === 'recycled');
+                                let recycledPrediction_off = data.predictions.find(p => p.tagName === 'OffPosition');
+                                let recycledPrediction_on = data.predictions.find(p => p.tagName === 'on-position');
+                                let recycledPrediction_with_pant = data.predictions.find(p => p.tagName === 'with_pant');
+
+                                // Check if the prediction exists and its probability is greater than 0.8
+                                if (recycledPrediction_with_pant && recycledPrediction_with_pant.probability > 0.8) {
+                                    withPant_triggered = true;
+                                }
+                                if (!withPant_triggered) {
+                                    // If withPant_triggered is false, prompt user to scan the bottle
+                                    document.getElementById('info').innerHTML = 'Scan your bottle';
+                                } else
+                                    if (recycledPrediction_on && recycledPrediction_on.probability > 0.8) {
+                                        // Set the flag to true
+                                        //gå etter denne her samme taktik
+                                        recycledPrediction_on_triggered = true;
+
+
+                                        // Update UI and show alert
+                                        document.getElementById('title').innerHTML = '2. Drop your bottle';
+                                        document.getElementById('bagImage').src = 'drop.png'; // Replace 'new_image.png' with the path to your new image
+
+                                        document.getElementById('info').innerHTML = 'Drop your bottle';
+                                        updateIcon('handIcon');
+                                        document.getElementById('info').innerHTML = 'Drop your bottle';
+                                    } else if (recycledPrediction && recycledPrediction.probability > 0.8 && recycledPrediction_on_triggered) {
+                                        // This condition will only execute if recycledPrediction_on_triggered is true
+                                        // Stop the camera and prediction
+                                        stopCameraAndPrediction();
+                                        window.location.href = 'success.html';
+                                        updateIcon('correctIcon');
+
+                                        // Send a message to the parent page
+                                        window.location.href = 'success.html';
+                                    } else {
+                                        document.getElementById('bagImage').src = 'hold.png'; // Replace 'new_image.png' with the path to your new image
+
+                                        document.getElementById('title').innerHTML = '2. Align bottle top of the Hole';
+                                        document.getElementById('info').innerHTML = 'Place your bottle on top of the hole';
+                                        document.getElementById('info').innerHTML = 'Place your bottle on top of the hole';
+                                        updateIcon('recycleIcon');
+                                    }
+                            }
+                        })
+                        .catch((error) => console.error(error));
+                }, 'image/jpeg', 0.05);
+            }, 147);
+        });
+
+        function stopCameraAndPrediction() {
+            // Implement this function to stop the camera stream and the prediction interval
+            if (video.srcObject) {
+                const stream = video.srcObject;
+                const tracks = stream.getTracks();
+                tracks.forEach(track => track.stop());
+                video.srcObject = null;
+            }
+
+            clearInterval(predictionInterval); // Stop the prediction interval
+        }
+    </script>
+</body>
